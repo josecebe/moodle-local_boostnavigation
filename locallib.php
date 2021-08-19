@@ -99,7 +99,7 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
     // Initialize variables for remembering the status of an accordion.
     $accordionalreadyopen = false;
 
-    if($customnodes == 'categoriesCollapse'){
+    if(substr($customnodes, 0, 18 ) === 'categoriesCollapse'){
         $categories = [];
         $enrolledcourses = enrol_get_users_courses($USER->id, true, null, null);
         foreach ($enrolledcourses as $course) {
@@ -326,7 +326,6 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
                 
             }
         }
-        return $collapsenodesforjs;
     }
 
     // Make a new array on delimiter "new line".
@@ -334,6 +333,10 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
 
     // Parse node settings.
     foreach ($lines as $line) {
+
+        if(strpos($line, 'categoriesCollapse')){
+            continue;
+        }
 
         // Remember the node which we add the custom node to individually as we might change this node afterwards.
         $targetnode = $node;
@@ -557,6 +560,7 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
                     null,
                     $nodekey,
                     null);
+            var_dump($customnode);
 
             // Show the custom node in Boost's nav drawer if requested.
             if ($showinflatnavigation) {
