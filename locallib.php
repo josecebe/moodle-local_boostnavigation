@@ -71,7 +71,7 @@ function local_boostnavigation_get_all_childrenkeys(navigation_node $navigationn
 function local_boostnavigation_build_custom_nodes($customnodes, navigation_node $node,
         $keyprefix='localboostnavigationcustom', $showinflatnavigation=true, $collapse=false,
         $collapsedefault=false, $accordion=false) {
-    global $USER, $FULLME;
+    global $USER, $FULLME, $DB;
 
     // Fetch config.
     $config = get_config('local_boostnavigation');
@@ -98,6 +98,236 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
 
     // Initialize variables for remembering the status of an accordion.
     $accordionalreadyopen = false;
+
+    if($customnodes == 'categoriesCollapse'){
+        $categories = [];
+        $enrolledcourses = enrol_get_users_courses($USER->id, true, null, null);
+        foreach ($enrolledcourses as $course) {
+            $courseobj = [
+                "id" => $course->id,
+                "name" => $course->fullname,
+                "url" => new moodle_url("/course/view.php?id=$course->id")
+            ];
+            $categoryid = $course->category;
+            $categoryobj = [];
+            if (array_key_exists($categoryid, $categories)) {
+                $categoryobj = $categories[$categoryid];
+            } else {
+                $category = $DB->get_record('course_categories', array('id' => $categoryid));
+                $categoryobj = [
+                    "id" => $category->id,
+                    "name" => $category->name,
+                    "url" => new moodle_url("/course/management.php?categoryid=$category->id"),
+                    "courses" => array()
+                ];
+            }
+            array_push($categoryobj["courses"], $courseobj);
+            $categories[$categoryid] = $categoryobj;
+        }
+
+        $targetnode = $node;
+        $nodeurl = null;
+        $nodetitle = null;
+        $nodevisible = false;
+        $nodeischild = false;
+        $nodekey = null;
+        $nodelanguage = null;
+        $nodeicon = null;
+        $nodebeforenodekey = null;
+
+        $nodeischild = false;
+        $nodetitle = local_boostnavigation_build_node_title("Mis cursos");
+        $nodeurl = local_boostnavigation_build_node_url(new moodle_url("/course/management.php"));
+        $nodevisible = true;
+
+        if ($nodevisible) {
+            if ($nodekey == null) {
+                $nodekey = $keyprefix.++$nodecount;
+            }
+
+            $customnodeRoot = navigation_node::create($nodetitle,
+                $nodeurl,
+                global_navigation::TYPE_CUSTOM,
+                null,
+                $nodekey,
+                null);
+
+            if ($showinflatnavigation) {
+                $customnodeRoot->showinflatnavigation = true;
+            }
+
+            if ($collapse) {
+                $collapselastparentprepared = false;
+            }
+
+            // Add custom class if any class was given.
+            if (!empty($nodeclass)) {
+                $customnodeRoot->add_class($nodeclass);
+            }
+
+            $targetnode->add_node($customnodeRoot, $nodebeforenodekey);
+
+            $userprefcustomnode = get_user_preferences('local_boostnavigation-collapse_'.$nodekey.'node', $collapsedefault);
+            if ($userprefcustomnode == 1) {
+                $customnodeRoot->add_class('localboostnavigationcollapsedparent');
+            } else {
+                if ($accordion == true) {
+                    if ($accordionalreadyopen == true) {
+                        $customnodeRoot->add_class('localboostnavigationcollapsedparent');
+                    } else {
+                        $accordionalreadyopen = true;
+                    }
+                }
+            }
+
+            if ($collapse) {
+                $customnodeRoot->make_inactive();
+            }
+            if ($nodeicon instanceof pix_icon) {
+                $customnodeRoot->icon = $nodeicon;
+            } else {
+                $customnodeRoot->icon = new pix_icon('customnodexs', '', 'local_boostnavigation');
+            }
+        }
+
+        foreach ($categories as $categorie) {
+            $targetnode = $node;
+            $nodeurl = null;
+            $nodetitle = null;
+            $nodevisible = false;
+            $nodeischild = false;
+            $nodekey = null;
+            $nodelanguage = null;
+            $nodeicon = null;
+            $nodebeforenodekey = null;
+
+            $nodeischild = false;
+            $nodetitle = local_boostnavigation_build_node_title($categorie["name"]);
+            $nodeurl = local_boostnavigation_build_node_url($categorie["url"]);
+            $nodevisible = true;
+
+            if ($nodevisible) {
+                if ($nodekey == null) {
+                    $nodekey = $keyprefix.++$nodecount;
+                }
+
+                $customnodeCategorie = navigation_node::create($nodetitle,
+                    $nodeurl,
+                    global_navigation::TYPE_CUSTOM,
+                    null,
+                    $nodekey,
+                    null);
+
+                if ($showinflatnavigation) {
+                    $customnodeCategorie->showinflatnavigation = true;
+                }
+
+                if ($collapse) {
+                    $collapselastparentprepared = false;
+                }
+
+                $targetnode->add_node($customnodeCategorie, $nodebeforenodekey);
+
+                $userprefcustomnode = get_user_preferences('local_boostnavigation-collapse_'.$nodekey.'node', $collapsedefault);
+                if ($userprefcustomnode == 1) {
+                    $customnodeCategorie->add_class('localboostnavigationcollapsedparent');
+                } else {
+                    if ($accordion == true) {
+                        if ($accordionalreadyopen == true) {
+                            $customnodeCategorie->add_class('localboostnavigationcollapsedparent');
+                        } else {
+                            $accordionalreadyopen = true;
+                        }
+                    }
+                }
+
+                if ($collapse) {
+                    $customnodeCategorie->make_inactive();
+                }
+
+                if ($nodeicon instanceof pix_icon) {
+                    $customnodeCategorie->icon = $nodeicon;
+                } else {
+                    $customnodeCategorie->icon = new pix_icon('customnodexs', '', 'local_boostnavigation');
+                }
+            }
+            
+
+
+            foreach ($categorie["courses"] as $course) {
+                $nodeurl = null;
+                $nodetitle = null;
+                $nodevisible = false;
+                $nodeischild = false;
+                $nodekey = null;
+                $nodelanguage = null;
+                $nodeicon = null;
+                $nodebeforenodekey = null;
+
+                $nodeischild = true;
+                $nodetitle = local_boostnavigation_build_node_title($course["name"]);
+                $nodeurl = local_boostnavigation_build_node_url($course["url"]);
+                $nodevisible = true;
+
+                $nodevisible &= true;
+                if ($nodevisible) {
+                    if ($nodekey == null) {
+                        $nodekey = $keyprefix.++$nodecount;
+                    }
+
+                    $customnode = navigation_node::create($nodetitle,
+                        $nodeurl,
+                        global_navigation::TYPE_CUSTOM,
+                        null,
+                        $nodekey,
+                        null);
+
+                    if ($showinflatnavigation) {
+                        $customnode->showinflatnavigation = true;
+                    }
+
+                    if ($collapse && !$collapselastparentprepared) {
+                        $collapsenodesforjs[] = $customnodeCategorie->key;
+
+                        $customnodeCategorie->add_class('localboostnavigationcollapsibleparent');
+
+                        $customnodeiconconfig = local_boostnavigation_get_customnodeicon_config($keyprefix, $config);
+                        if ($customnodeiconconfig == LOCAL_BOOSTNAVIGATION_COLLAPSEICON_JUSTINDENT) {
+                            $customnodeCategorie->icon = new pix_icon('i/navigationitem', '');
+                        } else if ($customnodeiconconfig == LOCAL_BOOSTNAVIGATION_COLLAPSEICON_NONE) {
+                            $customnodeCategorie->icon = new pix_icon('i/navigationitem', '');
+                            $customnodeCategorie->add_class('localboostnavigationcollapsibleparentforcenoindent');
+                        }
+                        $collapselastparentprepared = true;
+                    }
+
+                    $targetnode->add_node($customnode, $nodebeforenodekey);
+                    $customnode->set_parent($customnodeCategorie);
+
+                    if ($collapse) {
+                        $customnode->add_class('localboostnavigationcollapsiblechild');
+
+                        if (in_array('localboostnavigationcollapsedparent', $customnodeCategorie->classes)) {
+                            $customnode->add_class('localboostnavigationcollapsedchild');
+                        }
+                    }
+
+                    if ($pagefullurl instanceof moodle_url && $nodeurl->compare($pagefullurl, URL_MATCH_PARAMS)) {
+                        $customnode->make_active();
+                    }
+
+                    if ($nodeicon instanceof pix_icon) {
+                        $customnode->icon = $nodeicon;
+                    } else {
+                        $customnode->icon = new pix_icon('customnodexxs', '', 'local_boostnavigation');
+                    }
+
+                }
+                
+            }
+        }
+        return $collapsenodesforjs;
+    }
 
     // Make a new array on delimiter "new line".
     $lines = explode("\n", $customnodes);
@@ -230,6 +460,9 @@ function local_boostnavigation_build_custom_nodes($customnodes, navigation_node 
                             // If no valid icon is given, the node will be added to the navigation with the default icon.
                             if (local_boostnavigation_verify_faicon($setting) == true) {
                                 $nodeicon = new pix_icon($setting, '', 'local_boostnavigation');
+                                var_dump('');
+                                var_dump('ICONO "MALO"');
+                                var_dump($nodeicon);
                             }
 
                             break;
